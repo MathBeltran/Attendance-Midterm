@@ -24,9 +24,14 @@ create table if not exists public.attendance (
   id uuid primary key default gen_random_uuid(),
   student_id uuid not null references auth.users (id) on delete cascade,
   event_id uuid not null references public.events (id) on delete cascade,
-  scanned_at timestamptz not null default now(),
-  unique (student_id, event_id)
+  scanned_at timestamptz not null default now()
 );
+
+-- Attendance is a scan history. Keep every valid scan instead of rejecting
+-- repeat scans for the same student and event. The explicit drop also migrates
+-- projects that ran an older version of this schema.
+alter table public.attendance
+  drop constraint if exists attendance_student_id_event_id_key;
 
 alter table public.profiles enable row level security;
 alter table public.events enable row level security;
@@ -59,6 +64,44 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+-- RLS helper functions run as the schema owner so policy checks do not invoke
+-- another table's policies and recurse back into the original table.
+create or replace function public.current_user_has_role(requested_role text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = (select auth.uid())
+      and p.role = requested_role
+  );
+$$;
+
+create or replace function public.teacher_can_view_profile(target_profile_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.attendance a
+    join public.events e on e.id = a.event_id
+    where a.student_id = target_profile_id
+      and e.created_by = (select auth.uid())
+  );
+$$;
+
+revoke all on function public.current_user_has_role(text) from public;
+revoke all on function public.teacher_can_view_profile(uuid) from public;
+grant execute on function public.current_user_has_role(text) to authenticated;
+grant execute on function public.teacher_can_view_profile(uuid) to authenticated;
+
 drop policy if exists "Profiles are viewable by owner" on public.profiles;
 create policy "Profiles are viewable by owner"
   on public.profiles for select
@@ -79,24 +122,21 @@ drop policy if exists "Teachers can insert events" on public.events;
 create policy "Teachers can insert events"
   on public.events for insert
   with check (
-    created_by = auth.uid()
-    and exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'teacher'
-    )
+    created_by = (select auth.uid())
+    and public.current_user_has_role('teacher')
   );
 
 drop policy if exists "Teachers can update their own events" on public.events;
 create policy "Teachers can update their own events"
   on public.events for update
   using (
-    created_by = auth.uid()
-    and exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'teacher'
-    )
+    created_by = (select auth.uid())
+    and public.current_user_has_role('teacher')
   )
-  with check (created_by = auth.uid());
+  with check (
+    created_by = (select auth.uid())
+    and public.current_user_has_role('teacher')
+  );
 
 drop policy if exists "Students can view their own attendance" on public.attendance;
 create policy "Students can view their own attendance"
@@ -107,11 +147,8 @@ drop policy if exists "Students can insert their own attendance" on public.atten
 create policy "Students can insert their own attendance"
   on public.attendance for insert
   with check (
-    auth.uid() = student_id
-    and exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'student'
-    )
+    (select auth.uid()) = student_id
+    and public.current_user_has_role('student')
   );
 
 drop policy if exists "Teachers can view attendance for their events" on public.attendance;
@@ -128,16 +165,10 @@ create policy "Teachers can view attendance for their events"
 drop policy if exists "Teachers can view profiles of their attendees" on public.profiles;
 create policy "Teachers can view profiles of their attendees"
   on public.profiles for select
-  using (
-    exists (
-      select 1
-      from public.attendance a
-      join public.events e on e.id = a.event_id
-      where a.student_id = profiles.id
-        and e.created_by = auth.uid()
-    )
-  );
+  using (public.teacher_can_view_profile(id));
 
 create index if not exists events_created_by_idx on public.events (created_by);
 create index if not exists attendance_event_id_idx on public.attendance (event_id);
 create index if not exists attendance_student_id_idx on public.attendance (student_id);
+create index if not exists attendance_student_event_scanned_idx
+  on public.attendance (student_id, event_id, scanned_at desc);

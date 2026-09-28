@@ -16,7 +16,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: COLORS.ink,
+        tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.subtle,
         tabBarStyle: {
           backgroundColor: COLORS.card,

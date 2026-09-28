@@ -106,6 +106,6 @@ export default function ScanScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  cameraFrame: { flex: 1, minHeight: 300, borderWidth: 2, borderColor: COLORS.ink, borderRadius: 16, overflow: 'hidden', backgroundColor: COLORS.ink },
-  guide: { position: 'absolute', width: 220, height: 220, left: '50%', top: '50%', marginLeft: -110, marginTop: -110, borderWidth: 3, borderColor: COLORS.inverted, borderRadius: 12 },
+  cameraFrame: { flex: 1, minHeight: 300, borderWidth: 3, borderColor: COLORS.primary, borderRadius: 16, overflow: 'hidden', backgroundColor: COLORS.ink },
+  guide: { position: 'absolute', width: 220, height: 220, left: '50%', top: '50%', marginLeft: -110, marginTop: -110, borderWidth: 3, borderColor: COLORS.accent, borderRadius: 12 },
 });

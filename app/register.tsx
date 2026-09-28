@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   label: { color: COLORS.ink, fontSize: 14, fontWeight: '700' },
   roleRow: { flexDirection: 'row', gap: 10 },
   role: { flex: 1, minHeight: 50, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.card },
-  roleActive: { backgroundColor: COLORS.ink, borderColor: COLORS.ink },
+  roleActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   roleText: { color: COLORS.ink, fontSize: 15, fontWeight: '700' },
   roleTextActive: { color: COLORS.inverted },
   pressed: { opacity: 0.7 },

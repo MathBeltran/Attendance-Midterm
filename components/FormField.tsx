@@ -15,7 +15,7 @@ export function FormField({ label, error, style, ...props }: Props) {
       <TextInput
         accessibilityLabel={label}
         placeholderTextColor={COLORS.subtle}
-        selectionColor={COLORS.ink}
+        selectionColor={COLORS.primary}
         style={[styles.input, error ? styles.inputError : null, style]}
         {...props}
       />
@@ -42,6 +42,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
-  inputError: { borderColor: COLORS.ink, borderWidth: 2 },
-  error: { color: COLORS.ink, fontSize: 13, lineHeight: 18, fontWeight: '600' },
+  inputError: { borderColor: COLORS.accent, borderWidth: 2 },
+  error: { color: COLORS.accentPressed, fontSize: 13, lineHeight: 18, fontWeight: '600' },
 });

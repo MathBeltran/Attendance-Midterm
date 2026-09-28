@@ -19,10 +19,12 @@ export type TeacherEventAttendance = {
   eventId: string;
   eventCode: string;
   title: string;
+  createdAt: string;
   startTime: string | null;
   endTime: string | null;
   attendeeCount: number;
   attendees: {
+    attendanceId: string;
     studentId: string;
     studentName: string | null;
     email: string | null;
@@ -55,11 +57,8 @@ export async function registerAttendance(rawPayload: string, studentId: string):
     event_id: event.id,
   });
 
-  if (error?.code === '23505') {
-    return { success: false, message: 'Already registered for this event.', eventTitle: event.title };
-  }
   if (error) return { success: false, message: error.message };
-  return { success: true, message: 'Attendance recorded.', eventTitle: event.title };
+  return { success: true, message: 'Scan saved to your history.', eventTitle: event.title };
 }
 
 export async function getAttendanceHistory(studentId: string): Promise<AttendanceRecord[]> {
@@ -81,7 +80,7 @@ export async function getAttendanceHistory(studentId: string): Promise<Attendanc
 export async function getTeacherEventAttendance(teacherId: string): Promise<TeacherEventAttendance[]> {
   const { data: events, error: eventError } = await supabase
     .from('events')
-    .select('id, event_code, title, start_time, end_time')
+    .select('id, event_code, title, created_at, start_time, end_time')
     .eq('created_by', teacherId)
     .order('created_at', { ascending: false });
 
@@ -89,26 +88,37 @@ export async function getTeacherEventAttendance(teacherId: string): Promise<Teac
   const eventIds = events.map((event) => event.id);
   const { data: attendance, error: attendanceError } = await supabase
     .from('attendance')
-    .select('student_id, scanned_at, event_id, profiles ( full_name, email )')
+    .select('id, student_id, scanned_at, event_id')
     .in('event_id', eventIds)
     .order('scanned_at', { ascending: false });
 
   if (attendanceError || !attendance) return [];
+  const studentIds = [...new Set(attendance.map((row) => row.student_id))];
+  const { data: profiles } = studentIds.length
+    ? await supabase.from('profiles').select('id, full_name, email').in('id', studentIds)
+    : { data: [] };
+  const profilesById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+
   return events.map((event) => {
     const rows = attendance.filter((row) => row.event_id === event.id);
     return {
       eventId: event.id,
       eventCode: event.event_code,
       title: event.title,
+      createdAt: event.created_at,
       startTime: event.start_time,
       endTime: event.end_time,
       attendeeCount: rows.length,
-      attendees: rows.map((row: any) => ({
-        studentId: row.student_id,
-        studentName: row.profiles?.full_name ?? null,
-        email: row.profiles?.email ?? null,
-        scannedAt: row.scanned_at,
-      })),
+      attendees: rows.map((row) => {
+        const profile = profilesById.get(row.student_id);
+        return {
+          attendanceId: row.id,
+          studentId: row.student_id,
+          studentName: profile?.full_name ?? null,
+          email: profile?.email ?? null,
+          scannedAt: row.scanned_at,
+        };
+      }),
     };
   });
 }

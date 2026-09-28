@@ -27,6 +27,8 @@ export function AppButton({
 }: Props) {
   const blocked = disabled || loading;
   const primary = variant === 'primary';
+  const danger = variant === 'danger';
+  const foreground = primary || danger ? COLORS.inverted : COLORS.ink;
 
   return (
     <Pressable
@@ -45,11 +47,11 @@ export function AppButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={primary ? COLORS.inverted : COLORS.ink} />
+        <ActivityIndicator color={foreground} />
       ) : (
         <>
-          {icon ? <Ionicons name={icon} size={20} color={primary ? COLORS.inverted : COLORS.ink} /> : null}
-          <Text style={[styles.label, primary && styles.primaryLabel]}>{label}</Text>
+          {icon ? <Ionicons name={icon} size={20} color={foreground} /> : null}
+          <Text style={[styles.label, (primary || danger) && styles.primaryLabel]}>{label}</Text>
         </>
       )}
     </Pressable>
@@ -68,9 +70,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
-  primary: { backgroundColor: COLORS.ink },
+  primary: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   secondary: { backgroundColor: COLORS.card },
-  danger: { backgroundColor: COLORS.card, borderWidth: 2 },
+  danger: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
   label: { color: COLORS.ink, fontSize: 16, fontWeight: '700' },
   primaryLabel: { color: COLORS.inverted },
   disabled: { opacity: 0.42 },
