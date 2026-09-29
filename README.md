@@ -1,4 +1,4 @@
-# QR Attendance App
+# Attendance-Midterm
 
 Expo SDK 57 mobile attendance application with Supabase authentication, role-based profiles, cloud events, QR generation, QR scanning, and attendance history.
 
