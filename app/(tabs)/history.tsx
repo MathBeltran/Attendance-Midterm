@@ -48,7 +48,7 @@ function StudentHistory({ records }: { records: AttendanceRecord[] }) {
 
 function TeacherHistory({ events }: { events: TeacherEventAttendance[] }) {
   const [expanded, setExpanded] = useState<string | null>(null);
-  if (!events.length) return <Empty label="No event history yet." />;
+  if (!events.length) return <Empty label="No created event history yet." />;
   const totalScans = events.reduce((sum, event) => sum + event.attendeeCount, 0);
   return (
     <View style={styles.list}>
@@ -63,7 +63,7 @@ function TeacherHistory({ events }: { events: TeacherEventAttendance[] }) {
         <View style={styles.summaryDivider} />
         <View style={styles.summaryItem}>
           <Text style={styles.summaryNumber}>{events.length}</Text>
-          <Text style={styles.summaryLabel}>{events.length === 1 ? 'event' : 'events'}</Text>
+          <Text style={styles.summaryLabel}>{events.length === 1 ? 'created event' : 'created events'}</Text>
         </View>
       </View>
       {events.map((event) => {
@@ -82,7 +82,7 @@ function TeacherHistory({ events }: { events: TeacherEventAttendance[] }) {
               </View>
               <View style={styles.count}>
                 <Text style={styles.countText}>{event.attendeeCount}</Text>
-                <Text style={styles.countLabel}>{event.attendeeCount === 1 ? 'scan' : 'scans'}</Text>
+                <Text style={styles.countLabel}>{event.attendeeCount === 1 ? 'record' : 'records'}</Text>
               </View>
               <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={COLORS.primary} />
             </Pressable>

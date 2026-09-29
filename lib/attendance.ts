@@ -57,21 +57,30 @@ export async function registerAttendance(rawPayload: string, studentId: string):
     event_id: event.id,
   });
 
-  if (error) return { success: false, message: error.message };
+  if (error) {
+    const duplicateScan = error.code === '23505';
+    return {
+      success: false,
+      message: duplicateScan
+        ? 'This Supabase table still has a duplicate-scan constraint. Run the updated schema so every scan can be saved as history.'
+        : error.message,
+      eventTitle: event.title,
+    };
+  }
   return { success: true, message: 'Scan saved to your history.', eventTitle: event.title };
 }
 
 export async function getAttendanceHistory(studentId: string): Promise<AttendanceRecord[]> {
   const { data, error } = await supabase
     .from('attendance')
-    .select('id, scanned_at, events ( event_code, title )')
+    .select('id, event_id, scanned_at, events ( event_code, title )')
     .eq('student_id', studentId)
     .order('scanned_at', { ascending: false });
 
   if (error || !data) return [];
   return data.map((row: any) => ({
     id: row.id,
-    eventId: row.events?.event_code ?? '',
+    eventId: row.events?.event_code ?? row.event_id,
     eventTitle: row.events?.title ?? '',
     scannedAt: row.scanned_at,
   }));

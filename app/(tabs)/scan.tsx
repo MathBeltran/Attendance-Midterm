@@ -36,9 +36,14 @@ export default function ScanScreen() {
     if (!user || scanned || processing) return;
     setScanned(true);
     setProcessing(true);
-    const next = await registerAttendance(data, user.id);
-    setResult(next);
-    setProcessing(false);
+    try {
+      const next = await registerAttendance(data, user.id);
+      setResult(next);
+    } catch {
+      setResult({ success: false, message: 'Could not save this scan. Please try again.' });
+    } finally {
+      setProcessing(false);
+    }
   };
 
   if (role === null) {

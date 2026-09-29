@@ -33,6 +33,10 @@ create table if not exists public.attendance (
 alter table public.attendance
   drop constraint if exists attendance_student_id_event_id_key;
 
+drop index if exists public.attendance_student_id_event_id_key;
+drop index if exists public.attendance_student_id_event_id_idx;
+drop index if exists public.attendance_student_event_unique_idx;
+
 alter table public.profiles enable row level security;
 alter table public.events enable row level security;
 alter table public.attendance enable row level security;
@@ -66,6 +70,16 @@ create trigger on_auth_user_created
 
 -- RLS helper functions run as the schema owner so policy checks do not invoke
 -- another table's policies and recurse back into the original table.
+create or replace function public.current_user_id()
+returns uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select auth.uid();
+$$;
+
 create or replace function public.current_user_has_role(requested_role text)
 returns boolean
 language sql
@@ -98,25 +112,27 @@ as $$
 $$;
 
 revoke all on function public.current_user_has_role(text) from public;
+revoke all on function public.current_user_id() from public;
 revoke all on function public.teacher_can_view_profile(uuid) from public;
 grant execute on function public.current_user_has_role(text) to authenticated;
+grant execute on function public.current_user_id() to authenticated;
 grant execute on function public.teacher_can_view_profile(uuid) to authenticated;
 
 drop policy if exists "Profiles are viewable by owner" on public.profiles;
 create policy "Profiles are viewable by owner"
   on public.profiles for select
-  using (auth.uid() = id);
+  using (public.current_user_id() = id);
 
 drop policy if exists "Users can update their own profile" on public.profiles;
 create policy "Users can update their own profile"
   on public.profiles for update
-  using (auth.uid() = id)
-  with check (auth.uid() = id);
+  using (public.current_user_id() = id)
+  with check (public.current_user_id() = id);
 
 drop policy if exists "Events are readable by authenticated users" on public.events;
 create policy "Events are readable by authenticated users"
   on public.events for select
-  using (auth.role() = 'authenticated');
+  using ((select auth.role()) = 'authenticated');
 
 drop policy if exists "Teachers can insert events" on public.events;
 create policy "Teachers can insert events"
@@ -158,7 +174,7 @@ create policy "Teachers can view attendance for their events"
     exists (
       select 1 from public.events e
       where e.id = attendance.event_id
-        and e.created_by = auth.uid()
+        and e.created_by = public.current_user_id()
     )
   );
 
